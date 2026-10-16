@@ -13,6 +13,7 @@
   #gesturePanel strong { color: #65f5d0; letter-spacing: .08em; }
   #gesturePanel button { border: 0; border-radius: 7px; padding: 8px 11px; margin: 8px 6px 2px 0; color: #041411; background: #65f5d0; font-weight: 750; cursor: pointer; }
   #gesturePanel button.secondary { color: #eaf2ff; background: #28354a; }
+  #gestureToggle { position: fixed; z-index: 10; top: 12px; left: 12px; border: 1px solid rgba(65,220,190,.65); border-radius: 8px; padding: 8px 11px; color: #eaf2ff; background: rgba(5,12,24,.92); font: 13px system-ui, sans-serif; cursor: pointer; }
   #gestureStatus { color: #ffc66d; margin-top: 5px; }
   #gestureVideo { display:none; }
 </style>
@@ -27,6 +28,7 @@
   <button id="gestureStart" type="button">Enable face controls</button><button id="gestureCalibrate" class="secondary" type="button" disabled>Calibrate neutral</button><button id="gestureStop" class="secondary" type="button" disabled>Stop camera</button>
   <video id="gestureVideo" playsinline muted></video>
 </div>
+<button id="gestureToggle" type="button" hidden>Face controls</button>
 <noscript>ROAD RAGE: DEAD RUN needs JavaScript enabled.</noscript>
 <script>
 /*
@@ -1487,6 +1489,8 @@
   var startBtn = document.getElementById('gestureStart');
   var stopBtn = document.getElementById('gestureStop');
   var calBtn = document.getElementById('gestureCalibrate');
+  var panel = document.getElementById('gesturePanel');
+  var toggleBtn = document.getElementById('gestureToggle');
   var statusEl = document.getElementById('gestureStatus');
   var video = document.getElementById('gestureVideo');
   var stream = null, faceMesh = null, running = false, busy = false, raf = 0;
@@ -1550,6 +1554,8 @@
     try {
       status('Requesting camera permission…');
       stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+      panel.hidden = true;
+      toggleBtn.hidden = false;
       video.srcObject = stream; await video.play();
       if (!window.FaceMesh) await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js');
       faceMesh = new window.FaceMesh({locateFile:function(file){return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/'+file;}});
@@ -1560,6 +1566,8 @@
       status('Camera ready. Keep your head centred, then press Calibrate neutral.');
       raf = requestAnimationFrame(frame);
     } catch (e) {
+      panel.hidden = false;
+      toggleBtn.hidden = true;
       stop(); status('Could not start face controls: '+(e && e.message ? e.message : 'camera or tracking unavailable')+'. Use localhost/HTTPS and allow camera access.');
     } finally { startBtn.disabled = false; }
   }
@@ -1571,6 +1579,7 @@
     stopBtn.disabled = true; calBtn.disabled = true;
   }
   startBtn.addEventListener('click', start);
+  toggleBtn.addEventListener('click', function(){panel.hidden=false; toggleBtn.hidden=true;});
   stopBtn.addEventListener('click', function(){stop(); status('Camera stopped. Keyboard controls still work.');});
   calBtn.addEventListener('click', function(){ if(lastResult && performance.now()-lastResult<1200){neutral=null; status('Calibrating… hold your head in a neutral position.');} else status('No face detected yet. Face the camera first.'); });
   window.addEventListener('beforeunload', stop);
